@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { FaTimes } from 'react-icons/fa';
+import axios from 'axios';
 
 interface RPGClass {
     id: number;
@@ -40,35 +42,33 @@ const Guilds = () => {
         }
     }, []);
 
-    useEffect(() => {
-        async function fetchGuilds() {
-            if (!token) {
-                toast.error('Token não encontrado');
-                return;
-            }
+    const fetchGuilds = async () => {
+        if (!token) {
+            toast.error('Token não encontrado');
+            return;
+        }
 
-            const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+        const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 
-            if (!apiBaseUrl) {
-                toast.error('URL da API não configurada');
-                return;
-            }
+        if (!apiBaseUrl) {
+            toast.error('URL da API não configurada');
+            return;
+        }
 
-            const response = await fetch(`${apiBaseUrl}/guilds`, {
-                method: 'GET',
+        try {
+            const response = await axios.get(`${apiBaseUrl}/guilds`, {
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`,
                 },
             });
-
-            if (response.ok) {
-                const data = await response.json();
-                setGuilds(data.data);
-            } else {
-                toast.error('Erro ao buscar guildas');
-            }
+            setGuilds(response.data.data);
+        } catch (error) {
+            toast.error('Erro ao buscar guildas');
         }
+    };
+
+    useEffect(() => {
         if (token) {
             fetchGuilds();
         }
@@ -85,7 +85,7 @@ const Guilds = () => {
     };
 
     const createGuild = () => {
-        router.push('/create-guild');
+        router.push('/guildas/criar');
     };
 
     const balanceGuilds = async () => {
@@ -102,22 +102,68 @@ const Guilds = () => {
         }
 
         try {
-            const response = await fetch(`${apiBaseUrl}/guilds/balance`, {
-                method: 'GET',
+            const response = await axios.get(`${apiBaseUrl}/guilds/balance`, {
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`,
                 },
             });
 
-            if (response.ok) {
-                const data = await response.json();
-                toast.success(data.message);
-            } else {
-                toast.error('Erro ao balancear guildas');
-            }
-        } catch {
+            const message = response.data?.message || 'Guildas balanceadas com sucesso';
+
+            toast.success(message);
+
+            await fetchGuilds();
+        } catch (error) {
             toast.error('Erro ao balancear guildas');
+        }
+    };
+
+    const removeUserFromGuild = async (userId: number, guildId: number) => {
+        if (!token) {
+            toast.error('Token não encontrado');
+            return;
+        }
+
+        const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+
+        if (!apiBaseUrl) {
+            toast.error('URL da API não configurada');
+            return;
+        }
+
+        try {
+            await axios.delete(`${apiBaseUrl}/guilds/${guildId}/users/${userId}`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
+
+            setGuilds((prevGuilds) =>
+                prevGuilds.map((guild) =>
+                    guild.id === guildId
+                        ? {
+                            ...guild,
+                            users: guild.users.filter((user) => user.id !== userId),
+                        }
+                        : guild
+                )
+            );
+
+            setSelectedGuild((prevSelectedGuild) => {
+                if (prevSelectedGuild && prevSelectedGuild.id === guildId) {
+                    return {
+                        ...prevSelectedGuild,
+                        users: prevSelectedGuild.users.filter((user) => user.id !== userId),
+                    };
+                }
+                return prevSelectedGuild;
+            });
+
+            toast.success('Usuário removido da guilda com sucesso');
+        } catch (error) {
+            toast.error('Erro ao remover o usuário da guilda');
         }
     };
 
@@ -142,19 +188,30 @@ const Guilds = () => {
                     </div>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {guilds.map((guild) => (
-                        <div key={guild.id} className="bg-gray-800 rounded-lg p-6 space-y-4">
-                            <h3 className="text-2xl font-semibold">{guild.name}</h3>
-                            <p>{guild.description}</p>
-                            <p className="text-sm text-gray-400">Jogadores: {guild.users.length}</p>
-                            <button
-                                onClick={() => openModal(guild)}
-                                className="bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition"
-                            >
-                                Ver Jogadores
-                            </button>
-                        </div>
-                    ))}
+                    {guilds.map((guild) => {
+                        const totalXP = guild.users.reduce((acc, user) => acc + user.xp, 0);
+
+                        return (
+                            <div key={guild.id} className="bg-gray-800 rounded-lg p-6 space-y-4 transition transform hover:scale-105">
+                                <h3 className="text-2xl font-semibold">{guild.name}</h3>
+                                <p>{guild.description}</p>
+                                <div className="flex items-center justify-between">
+                                    <span className="px-4 py-1 bg-gray-500 text-white rounded-full text-sm shadow-md">
+                                        Jogadores: {guild.users.length} / {guild.max_players}
+                                    </span>
+                                    <span className="px-4 py-1 bg-green-600 text-white rounded-full text-sm shadow-md">
+                                        XP Total: {totalXP}
+                                    </span>
+                                </div>
+                                <button
+                                    onClick={() => openModal(guild)}
+                                    className="w-full bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition"
+                                >
+                                    Ver Jogadores
+                                </button>
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
 
@@ -165,9 +222,9 @@ const Guilds = () => {
                             <h3 className="text-2xl font-semibold">Jogadores de {selectedGuild.name}</h3>
                             <button
                                 onClick={closeModal}
-                                className="bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition"
+                                className="bg-gray-600 text-white p-2 rounded-full hover:bg-gray-700 transition focus:outline-none"
                             >
-                                Fechar
+                                <FaTimes className="text-2xl" />
                             </button>
                         </div>
                         <table className="min-w-full table-auto text-sm">
@@ -176,6 +233,7 @@ const Guilds = () => {
                                     <th className="py-2 px-4">Jogador</th>
                                     <th className="py-2 px-4">XP</th>
                                     <th className="py-2 px-4">Classe</th>
+                                    <th className="py-2 px-4">Ação</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -184,6 +242,14 @@ const Guilds = () => {
                                         <td className="py-2 px-4">{user.name}</td>
                                         <td className="py-2 px-4">{user.xp}</td>
                                         <td className="py-2 px-4">{user.rpg_class.name}</td>
+                                        <td className="py-2 px-4">
+                                            <button
+                                                onClick={() => removeUserFromGuild(user.id, selectedGuild.id)}
+                                                className="bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition"
+                                            >
+                                                Remover
+                                            </button>
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>

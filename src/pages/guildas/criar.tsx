@@ -48,7 +48,7 @@ const CreateGuild = () => {
     if (response.ok) {
       const data = await response.json();
       console.log('Guilda criada:', data);
-      router.push('/guilds');
+      router.push('/guildas');
     } else {
       console.error('Erro ao criar guilda');
     }

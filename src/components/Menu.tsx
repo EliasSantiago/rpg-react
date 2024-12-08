@@ -10,7 +10,7 @@ const Menu = () => {
             <Link href="/users" className="text-lg hover:text-gray-400">Usuários</Link>
           </li>
           <li>
-            <Link href="/guilds" className="text-lg hover:text-gray-400">Guildas</Link>
+            <Link href="/guildas" className="text-lg hover:text-gray-400">Guildas</Link>
           </li>
           <li>
             <Link href="/rpg-class" className="text-lg hover:text-gray-400">Classes</Link>
