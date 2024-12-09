@@ -27,6 +27,7 @@ const Users = () => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -37,6 +38,8 @@ const Users = () => {
     }
 
     const fetchUsers = async () => {
+      setIsLoading(true);
+
       try {
         const response = await axios.get(`${API_BASE_URL}/users`, {
           headers: {
@@ -46,8 +49,9 @@ const Users = () => {
         });
         setUsers(response.data.data);
       } catch (error) {
-        console.error('Erro ao buscar usuários', error);
         toast.error('Erro ao buscar usuários');
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -60,6 +64,8 @@ const Users = () => {
       console.error('Token não encontrado no localStorage');
       return;
     }
+
+    setIsLoading(true);
 
     try {
       const response = await axios.patch(
@@ -81,19 +87,18 @@ const Users = () => {
         );
         toast.success(`Usuário ${confirmed ? 'confirmado' : 'desconfirmado'} com sucesso.`);
       } else {
-        console.error(`Erro ao ${confirmed ? 'confirmar' : 'desconfirmar'} usuário`);
         toast.error(`Erro ao ${confirmed ? 'confirmar' : 'desconfirmar'} usuário`);
       }
     } catch (error) {
-      console.error('Erro na requisição:', error);
       toast.error('Erro ao atualizar a confirmação do usuário');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const confirmAllUsers = async () => {
     const token = localStorage.getItem('token');
     if (!token) {
-      console.error('Token não encontrado no localStorage');
       return;
     }
 
@@ -115,11 +120,9 @@ const Users = () => {
         setUsers(prevUsers => prevUsers.map(user => ({ ...user, confirmed: true })));
         toast.success('Todos os usuários foram confirmados com sucesso.');
       } else {
-        console.error('Erro ao confirmar todos os usuários');
         toast.error('Erro ao confirmar todos os usuários');
       }
     } catch (error) {
-      console.error('Erro na requisição:', error);
       toast.error('Erro ao confirmar todos os usuários');
     } finally {
       setLoading(false);
@@ -127,13 +130,12 @@ const Users = () => {
   };
 
   const disconfirmAllUsers = async () => {
+    setLoading(true);
+
     const token = localStorage.getItem('token');
     if (!token) {
-      console.error('Token não encontrado no localStorage');
       return;
     }
-
-    setLoading(true);
 
     try {
       const response = await axios.post(
@@ -151,11 +153,9 @@ const Users = () => {
         setUsers(prevUsers => prevUsers.map(user => ({ ...user, confirmed: false })));
         toast.success('Todos os usuários foram desconfirmados com sucesso.');
       } else {
-        console.error('Erro ao desconfirmar todos os usuários');
         toast.error('Erro ao desconfirmar todos os usuários');
       }
     } catch (error) {
-      console.error('Erro na requisição:', error);
       toast.error('Erro ao desconfirmar todos os usuários');
     } finally {
       setLoading(false);
@@ -163,9 +163,9 @@ const Users = () => {
   };
 
   const deleteUser = async (id: number) => {
+
     const token = localStorage.getItem('token');
     if (!token) {
-      console.error('Token não encontrado no localStorage');
       return;
     }
 
@@ -181,17 +181,14 @@ const Users = () => {
         setUsers(prevUsers => prevUsers.filter(user => user.id !== id));
         toast.success('Usuário deletado com sucesso.');
       } else {
-        console.error('Erro ao deletar usuário');
         toast.error('Erro ao deletar usuário');
       }
     } catch (error) {
-      console.error('Erro na requisição:', error);
       toast.error('Erro ao deletar usuário');
     }
   };
 
   const editUser = (id: number) => {
-    console.log('Redirecionando para /users/update/' + id);
     router.push(`/users/update/${id}`);
   };
 
@@ -230,6 +227,14 @@ const Users = () => {
             </button>
           </div>
         </div>
+
+        {isLoading ? (
+          <div className="fixed inset-0 flex justify-center items-center bg-gray-900 bg-opacity-50 z-50 backdrop-blur-sm">
+            <div className="w-64 h-2 bg-gray-300 rounded-full overflow-hidden">
+              <div className="h-full bg-lime-500 animate-widening"></div>
+            </div>
+          </div>
+        ) : null}
 
         <div className="overflow-x-auto bg-gray-800 shadow-lg rounded-lg">
           <table className="min-w-full divide-y divide-gray-700">

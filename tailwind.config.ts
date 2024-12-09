@@ -8,6 +8,15 @@ export default {
   ],
   theme: {
     extend: {
+      animation: {
+        widening: 'widening 1s linear infinite',
+      },
+      keyframes: {
+        widening: {
+          '0%': { width: '0%' },
+          '100%': { width: '100%' },
+        },
+      },
       colors: {
         background: "var(--background)",
         foreground: "var(--foreground)",

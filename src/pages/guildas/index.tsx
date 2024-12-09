@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { FaTimes } from 'react-icons/fa';
+import { FaTimes, FaEdit, FaTrashAlt } from 'react-icons/fa';
 import axios from 'axios';
 
 interface RPGClass {
@@ -32,6 +32,7 @@ const Guilds = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [token, setToken] = useState<string | null>(null);
     const router = useRouter();
+    const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
         if (typeof window !== "undefined") {
@@ -55,6 +56,7 @@ const Guilds = () => {
             return;
         }
 
+        setIsLoading(true);
         try {
             const response = await axios.get(`${apiBaseUrl}/guilds`, {
                 headers: {
@@ -65,6 +67,8 @@ const Guilds = () => {
             setGuilds(response.data.data);
         } catch (error) {
             toast.error('Erro ao buscar guildas');
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -88,38 +92,7 @@ const Guilds = () => {
         router.push('/guildas/criar');
     };
 
-    const balanceGuilds = async () => {
-        if (!token) {
-            toast.error('Token não encontrado');
-            return;
-        }
-
-        const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-
-        if (!apiBaseUrl) {
-            toast.error('URL da API não configurada');
-            return;
-        }
-
-        try {
-            const response = await axios.get(`${apiBaseUrl}/guilds/balance`, {
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`,
-                },
-            });
-
-            const message = response.data?.message || 'Guildas balanceadas com sucesso';
-
-            toast.success(message);
-
-            await fetchGuilds();
-        } catch (error) {
-            toast.error('Erro ao balancear guildas');
-        }
-    };
-
-    const removeUserFromGuild = async (userId: number, guildId: number) => {
+    const removeUserFromGuild = async (userId, guildId) => {
         if (!token) {
             toast.error('Token não encontrado');
             return;
@@ -151,19 +124,92 @@ const Guilds = () => {
                 )
             );
 
-            setSelectedGuild((prevSelectedGuild) => {
-                if (prevSelectedGuild && prevSelectedGuild.id === guildId) {
-                    return {
+            setSelectedGuild((prevSelectedGuild) =>
+                prevSelectedGuild && prevSelectedGuild.id === guildId
+                    ? {
                         ...prevSelectedGuild,
                         users: prevSelectedGuild.users.filter((user) => user.id !== userId),
-                    };
-                }
-                return prevSelectedGuild;
-            });
+                    }
+                    : prevSelectedGuild
+            );
 
             toast.success('Usuário removido da guilda com sucesso');
         } catch (error) {
-            toast.error('Erro ao remover o usuário da guilda');
+            toast.error(
+                error.response?.data?.message || 'Erro ao remover o usuário da guilda'
+            );
+        }
+    };
+
+    const deleteGuild = async (guildId: number) => {
+        if (!token) {
+            toast.error('Token não encontrado');
+            return;
+        }
+
+        const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+
+        if (!apiBaseUrl) {
+            toast.error('URL da API não configurada');
+            return;
+        }
+
+        try {
+            await axios.delete(`${apiBaseUrl}/guilds/${guildId}`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
+
+            setGuilds((prevGuilds) =>
+                prevGuilds.filter((guild) => guild.id !== guildId)
+            );
+
+            toast.success('Guilda deletada com sucesso');
+        } catch (error) {
+            toast.error('Erro ao deletar a guilda');
+        }
+    };
+
+    const editGuild = (guildId: number) => {
+        router.push(`/guildas/update/${guildId}`);
+    };
+
+    const balanceGuilds = async () => {
+        if (!token) {
+            toast.error('Token não encontrado');
+            return;
+        }
+
+        const apiBaseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
+
+        if (!apiBaseUrl) {
+            toast.error('URL da API não configurada');
+            return;
+        }
+
+        setIsLoading(true);
+        try {
+            const response = await axios.post(
+                `${apiBaseUrl}/guilds/balance`,
+                {},
+                {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`,
+                    },
+                }
+            );
+
+            const message = response.data?.message || 'Guildas balanceadas com sucesso';
+            toast.success(message);
+
+            await fetchGuilds();
+        } catch (error) {
+            toast.error('Erro ao balancear guildas');
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -183,32 +229,62 @@ const Guilds = () => {
                             onClick={balanceGuilds}
                             className="bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition"
                         >
-                            Balancear Guildas
+                            Balancear Guilda
                         </button>
                     </div>
                 </div>
+
+                {isLoading ? (
+                    <div className="fixed inset-0 flex justify-center items-center bg-gray-900 bg-opacity-50 z-50 backdrop-blur-sm">
+                        <div className="w-64 h-2 bg-gray-300 rounded-full overflow-hidden">
+                            <div className="h-full bg-lime-500 animate-widening"></div>
+                        </div>
+                    </div>
+                ) : null}
+
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     {guilds.map((guild) => {
                         const totalXP = guild.users.reduce((acc, user) => acc + user.xp, 0);
 
                         return (
-                            <div key={guild.id} className="bg-gray-800 rounded-lg p-6 space-y-4 transition transform hover:scale-105">
-                                <h3 className="text-2xl font-semibold">{guild.name}</h3>
-                                <p>{guild.description}</p>
-                                <div className="flex items-center justify-between">
-                                    <span className="px-4 py-1 bg-gray-500 text-white rounded-full text-sm shadow-md">
-                                        Jogadores: {guild.users.length} / {guild.max_players}
-                                    </span>
-                                    <span className="px-4 py-1 bg-green-600 text-white rounded-full text-sm shadow-md">
-                                        XP Total: {totalXP}
-                                    </span>
+                            <div
+                                key={guild.id}
+                                className="bg-gray-800 rounded-lg p-6 space-y-4 transition transform relative flex flex-col justify-between"
+                            >
+                                <div className="top-4 flex space-x-2 justify-end">
+                                    <button
+                                        onClick={() => editGuild(guild.id)}
+                                        className="bg-yellow-600 text-white p-2 rounded-full hover:bg-yellow-700"
+                                    >
+                                        <FaEdit />
+                                    </button>
+                                    <button
+                                        onClick={() => deleteGuild(guild.id)}
+                                        className="bg-red-600 text-white p-2 rounded-full hover:bg-red-700"
+                                    >
+                                        <FaTrashAlt />
+                                    </button>
                                 </div>
-                                <button
-                                    onClick={() => openModal(guild)}
-                                    className="w-full bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition"
-                                >
-                                    Ver Jogadores
-                                </button>
+                                <div className="flex-grow">
+                                    <h3 className="text-2xl font-semibold">{guild.name}</h3>
+                                    <p>{guild.description}</p>
+                                </div>
+                                <div className="mt-4">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <span className="px-4 py-1 bg-gray-500 text-white rounded-full text-sm shadow-md">
+                                            Jogadores: {guild.users.length} / {guild.max_players}
+                                        </span>
+                                        <span className="px-4 py-1 bg-green-600 text-white rounded-full text-sm shadow-md">
+                                            XP Total: {totalXP}
+                                        </span>
+                                    </div>
+                                    <button
+                                        onClick={() => openModal(guild)}
+                                        className="w-full bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition"
+                                    >
+                                        Ver Jogadores
+                                    </button>
+                                </div>
                             </div>
                         );
                     })}

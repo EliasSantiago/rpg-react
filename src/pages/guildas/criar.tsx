@@ -47,11 +47,14 @@ const CreateGuild = () => {
 
     if (response.ok) {
       const data = await response.json();
-      console.log('Guilda criada:', data);
       router.push('/guildas');
     } else {
       console.error('Erro ao criar guilda');
     }
+  };
+
+  const handleCancel = () => {
+    router.push('/guildas');
   };
 
   return (
@@ -67,7 +70,7 @@ const CreateGuild = () => {
               type="text"
               value={guild.name}
               onChange={handleChange}
-              className="mt-2 p-3 w-full bg-gray-800 text-white border border-gray-700 rounded-md"
+              className="mt-1 px-4 py-2 w-full bg-gray-800 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <div>
@@ -78,7 +81,7 @@ const CreateGuild = () => {
               type="text"
               value={guild.description}
               onChange={handleChange}
-              className="mt-2 p-3 w-full bg-gray-800 text-white border border-gray-700 rounded-md"
+              className="t-1 px-4 py-2 w-full bg-gray-800 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
           <div>
@@ -89,12 +92,22 @@ const CreateGuild = () => {
               type="number"
               value={guild.max_players}
               onChange={handleChange}
-              className="mt-2 p-3 w-full bg-gray-800 text-white border border-gray-700 rounded-md"
+              className="t-1 px-4 py-2 w-full bg-gray-800 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
-          <div className="flex space-x-4">
-            <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded">
+          <div className="flex justify-between space-x-4">
+            <button
+              type="submit"
+              className="w-1/2 py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            >
               Criar Guilda
+            </button>
+            <button
+              type="button"
+              onClick={handleCancel}
+              className="w-1/2 py-2 px-4 bg-gray-600 text-white rounded-md hover:bg-gray-700"
+            >
+              Cancelar
             </button>
           </div>
         </form>
