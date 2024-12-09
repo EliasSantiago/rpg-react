@@ -333,7 +333,6 @@ const Guilds = () => {
                     </div>
                 </div>
             )}
-
             <ToastContainer />
         </div>
     );
