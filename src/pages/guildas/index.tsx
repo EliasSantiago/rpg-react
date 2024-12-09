@@ -92,7 +92,7 @@ const Guilds = () => {
         router.push('/guildas/criar');
     };
 
-    const removeUserFromGuild = async (userId, guildId) => {
+    const removeUserFromGuild = async (userId: number, guildId: number) => {
         if (!token) {
             toast.error('Token não encontrado');
             return;
@@ -136,7 +136,7 @@ const Guilds = () => {
             toast.success('Usuário removido da guilda com sucesso');
         } catch (error) {
             toast.error(
-                error.response?.data?.message || 'Erro ao remover o usuário da guilda'
+                'Erro ao remover o usuário da guilda'
             );
         }
     };
